@@ -26,7 +26,6 @@ use Carp qw(croak);
 use MHA::NodeConst;
 use File::Path;
 use Errno();
-use Socket qw(NI_NUMERICHOST getaddrinfo getnameinfo);
 
 sub create_dir_if($) {
   my $dir = shift;
@@ -151,22 +150,13 @@ sub drop_file_if($) {
 
 sub get_ip {
   my $host = shift;
-  my ( $err, @bin_addr_host, $addr_host );
+  my ( $bin_addr_host, $addr_host );
   if ( defined($host) ) {
-    ( $err, @bin_addr_host ) = getaddrinfo($host);
-    croak "Failed to get IP address on host $host: $err\n" if $err;
-
-    # We take the first ip address that is returned by getaddrinfo
-    ( $err, $addr_host ) = getnameinfo($bin_addr_host[0]->{addr}, NI_NUMERICHOST);
-    croak "Failed to convert IP address for host $host: $err\n" if $err;
-
-    # for IPv6 (and it works with IPv4 and hostnames as well):
-    # - DBD-MySQL expects [::] format
-    # - scp requires [::] format
-    # - ssh requires :: format
-    # - mysql tools require :: format
-    # The code in MHA is expected to use [] when it is running scp
-    # when it connects with DBD-MySQL
+    $bin_addr_host = gethostbyname($host);
+    unless ($bin_addr_host) {
+      croak "Failed to get IP address on host $host!\n";
+    }
+    $addr_host = sprintf( "%vd", $bin_addr_host );
 
     return $addr_host;
   }
