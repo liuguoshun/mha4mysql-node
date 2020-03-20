@@ -241,10 +241,10 @@ sub check_if_super_read_only {
     { PrintError => 0, RaiseError => 1 } );
   croak "Failed to get DB Handle to check super_read_only on $host:$port!\n" unless ($dbh);
 
-  my $sth = $dbh->prepare("show global variables like 'super_read_only';");
+  my $sth = $dbh->prepare("SELECT \@\@global.super_read_only as Value");
   $sth->execute();
   my $href = $sth->fetchrow_hashref;
-  if ( $href->{Value} && $href->{Value} == '1' ) {
+  if ( $href->{Value} == '1' )  {
     return (1, $dbh);
   }
   return (0, 0);
